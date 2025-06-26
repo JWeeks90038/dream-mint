@@ -74,33 +74,33 @@ function App() {
       const provider = new ethers.BrowserProvider((window as any).ethereum);
       const network = await provider.getNetwork();
       
-      if (network.chainId === 11155111n) {
-        // Sepolia testnet - ONLY supported network
-        setCurrentNetwork('sepolia');
+      if (network.chainId === 1n) {
+        // Ethereum Mainnet - Production network
+        setCurrentNetwork('mainnet');
         setError(null);
-        console.log('Connected to Sepolia testnet - Ready for minting!');
+        console.log('Connected to Ethereum Mainnet - Ready for minting!');
       } else {
         // Any other network (including Hardhat local)
         setCurrentNetwork('other');
-        setError(`❌ Unsupported network: ${network.name} (Chain ID: ${network.chainId}). DreamMint only supports Sepolia testnet for minting. Please switch to Sepolia.`);
+        setError(`❌ Unsupported network: ${network.name} (Chain ID: ${network.chainId}). DreamMint requires Ethereum network for minting. Please switch networks.`);
         
-        // Automatically offer to switch to Sepolia
+        // Automatically offer to switch to Ethereum Mainnet
         try {
           await (window as any).ethereum.request({
             method: 'wallet_switchEthereumChain',
-            params: [{ chainId: '0xaa36a7' }], // 11155111 in hex (Sepolia)
+            params: [{ chainId: '0x1' }], // 1 in hex (Ethereum Mainnet)
           });
           // Re-check after switching
           setTimeout(checkNetwork, 1000);
         } catch (switchError: any) {
-          console.log('Failed to auto-switch to Sepolia:', switchError);
-          setError(`❌ Please manually switch to Sepolia testnet in MetaMask. Current network: ${network.name}`);
+          console.log('Failed to auto-switch to Ethereum Mainnet:', switchError);
+          setError(`❌ Please manually switch to the correct Ethereum network in MetaMask. Current network: ${network.name}`);
         }
       }
     } catch (err) {
       console.error('Network check failed:', err);
       setCurrentNetwork('unknown');
-      setError('❌ Failed to detect network. Please ensure MetaMask is connected and switch to Sepolia testnet.');
+      setError('❌ Failed to detect network. Please ensure MetaMask is connected and switch to the correct Ethereum network.');
     }
   }
 
@@ -194,12 +194,12 @@ function App() {
       const network = await provider.getNetwork();
       console.log("🌐 Current network:", network.name, "Chain ID:", network.chainId);
       
-      // ONLY allow Sepolia testnet for minting
-      if (network.chainId !== 11155111n) {
-        throw new Error(`❌ DreamMint only supports Sepolia testnet. Please switch to Sepolia (Chain ID: 11155111). Current network: ${network.name} (${network.chainId})`);
+      // ONLY allow Ethereum Mainnet for minting
+      if (network.chainId !== 1n) {
+        throw new Error(`❌ DreamMint requires Ethereum Mainnet. Please switch to Ethereum Mainnet (Chain ID: 1). Current network: ${network.name} (${network.chainId})`);
       }
       
-      console.log("✅ Minting on Sepolia testnet - Ready for OpenSea!");
+      console.log("✅ Minting on Ethereum Mainnet - Ready for OpenSea!");
       
       // Process payment first
       console.log('Processing payment for NFT minting...');
@@ -381,20 +381,6 @@ return (
           ❓ How it Works
         </button>
       </div>
-      <div
-        style={{
-          background: 'rgba(52, 152, 219, 0.1)',
-          border: '1px solid rgba(52, 152, 219, 0.3)',
-          borderRadius: '8px',
-          padding: '12px',
-          margin: '16px 0',
-          textAlign: 'center',
-          fontSize: '14px',
-          color: '#3498db',
-        }}
-      >
-        🌊 DreamMint operates exclusively on <strong>Sepolia Testnet</strong> for OpenSea compatibility
-      </div>
 
 
 
@@ -536,7 +522,7 @@ return (
       {txHash && (
         <p style={{ marginTop: 12 }}>
           Dream minted! Tx:{' '}
-          <a href={`https://sepolia.etherscan.io/tx/${txHash}`} target="_blank" rel="noopener noreferrer">
+          <a href={`https://etherscan.io/tx/${txHash}`} target="_blank" rel="noopener noreferrer">
             {txHash}
           </a>
         </p>
@@ -560,15 +546,15 @@ return (
       <div className="modal">
         <div className="modal-content">
           <h2>🎉 Mint Successful!</h2>
-          <p>Your dream NFT has been minted on Sepolia testnet and is OpenSea-ready!</p>
+          <p>Your dream NFT has been minted on Ethereum and is OpenSea-ready!</p>
           <div style={{ margin: '16px 0', padding: '12px', backgroundColor: '#e6f3ff', borderRadius: '8px' }}>
             <p><strong>Token ID:</strong> {parseInt(lastMintedTokenId, 16)}</p>
-            <p><strong>Network:</strong> Sepolia Testnet</p>
+            <p><strong>Network:</strong> Ethereum</p>
             <p><strong>Contract:</strong> 0x1b0b5e6c2787C11747dC0e90BD76028674b7209B</p>
           </div>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', margin: '16px 0' }}>
             <a 
-              href={`https://testnets.opensea.io/assets/sepolia/0x1b0b5e6c2787C11747dC0e90BD76028674b7209B/${parseInt(lastMintedTokenId, 16)}`}
+              href={`https://opensea.io/assets/ethereum/${process.env.VITE_CONTRACT_ADDRESS || '0xYourContractAddress'}/${parseInt(lastMintedTokenId, 16)}`}
               target="_blank" 
               rel="noopener noreferrer"
               style={{ 
@@ -583,7 +569,7 @@ return (
               🌊 View on OpenSea
             </a>
             <a 
-              href={`https://sepolia.etherscan.io/token/0x1b0b5e6c2787C11747dC0e90BD76028674b7209B?a=${parseInt(lastMintedTokenId, 16)}`}
+              href={`https://etherscan.io/token/${process.env.VITE_CONTRACT_ADDRESS || '0xYourContractAddress'}?a=${parseInt(lastMintedTokenId, 16)}`}
               target="_blank" 
               rel="noopener noreferrer"
               style={{ 
@@ -645,7 +631,7 @@ return (
             
             <h3 style={{ color: '#4CAF50', marginTop: '20px' }}>🔗 Getting Started</h3>
             <p><strong>1. Connect MetaMask:</strong> Required for all users to receive NFTs. Your wallet address is where your NFT will be delivered.</p>
-            <p><strong>2. Switch to Sepolia:</strong> DreamMint only works on Sepolia testnet for OpenSea compatibility.</p>
+            <p><strong>2. Connect to Ethereum:</strong> DreamMint works on Ethereum network for NFT minting.</p>
             <p><strong>3. Choose Payment Method:</strong> Select how you want to pay for services in "Payment Settings".</p>
 
             <h3 style={{ color: '#2196F3', marginTop: '20px' }}>💳 Payment Options</h3>
@@ -687,18 +673,18 @@ return (
               <p style={{ marginTop: '15px' }}><strong>Step 2 - Mint NFT ($1.99 + gas):</strong></p>
               <ul>
                 <li>Uploads image & metadata to IPFS (permanent storage)</li>
-                <li>Creates NFT on Sepolia blockchain</li>
+                <li>Creates NFT on Ethereum blockchain</li>
                 <li>Pay service fee via chosen method + gas fee in ETH</li>
                 <li>NFT appears in your wallet & on OpenSea</li>
               </ul>
             </div>
 
-            <h3 style={{ color: '#F44336', marginTop: '20px' }}>🔒 Security & Test Mode</h3>
+            <h3 style={{ color: '#2ECC71', marginTop: '20px' }}>🔒 Security & Privacy</h3>
             <ul>
-              <li><strong>Stripe Test Mode:</strong> Use test card 4242 4242 4242 4242 for testing</li>
-              <li><strong>Sepolia Testnet:</strong> Free test ETH, no real money at risk</li>
               <li><strong>Your Data:</strong> Only dream text and wallet address stored</li>
               <li><strong>NFT Ownership:</strong> You own your NFTs permanently</li>
+              <li><strong>Secure Payments:</strong> Industry-standard encryption and security</li>
+              <li><strong>Decentralized Storage:</strong> Images stored on IPFS, not our servers</li>
             </ul>
 
             <div style={{ 

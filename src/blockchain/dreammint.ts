@@ -2,7 +2,8 @@ import { ethers } from "ethers";
 
 // Contract addresses for different networks
 const CONTRACT_ADDRESSES = {
-  11155111: "0x1b0b5e6c2787C11747dC0e90BD76028674b7209B", // Sepolia testnet ONLY
+  1: process.env.VITE_CONTRACT_ADDRESS || "0xYourMainnetContractAddress", // Ethereum Mainnet
+  11155111: "0x1b0b5e6c2787C11747dC0e90BD76028674b7209B", // Sepolia testnet (for testing)
 };
 
 // Get contract address for current network (Sepolia only)
