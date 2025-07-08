@@ -636,28 +636,28 @@ return (
 
             <h3 style={{ color: '#2196F3', marginTop: '20px' }}>💳 Payment Options</h3>
             <div style={{ background: '#f5f5f5', padding: '15px', borderRadius: '8px', margin: '10px 0' }}>
-              <p><strong>🔗 Ethereum Wallet (Crypto):</strong></p>
+              <p><strong>🔗 Polygon Wallet (Crypto):</strong></p>
               <ul>
-                <li>Pay service fees ($0.69 image, $1.99 minting) in ETH from your wallet</li>
-                <li>Plus blockchain gas fees (≈0.001 ETH) for minting</li>
+                <li>Pay service fees ($0.69 image, $1.99 minting) in MATIC from your wallet</li>
+                <li>Plus blockchain gas fees (≈0.001 MATIC) for minting</li>
                 <li>All payments from your MetaMask wallet</li>
               </ul>
               
               <p style={{ marginTop: '15px' }}><strong>💳 Credit/Debit Card (Stripe):</strong></p>
               <ul>
                 <li>Pay service fees ($0.69 image, $1.99 minting) with your card</li>
-                <li>Still need ETH in wallet for gas fees (≈0.001 ETH)</li>
+                <li>Still need MATIC in wallet for gas fees (≈0.001 MATIC)</li>
                 <li>Cards processed securely through Stripe</li>
               </ul>
             </div>
 
             <h3 style={{ color: '#FF9800', marginTop: '20px' }}>⛽ Understanding Gas Fees</h3>
-            <p><strong>Gas fees</strong> are required by the Ethereum network for ALL blockchain transactions. They go to network validators, not to DreamMint.</p>
+            <p><strong>Gas fees</strong> are required by the Polygon network for ALL blockchain transactions. They go to network validators, not to DreamMint.</p>
             <ul>
-              <li><strong>What:</strong> Small ETH payment (≈0.001 ETH = ~$3) to miners</li>
+              <li><strong>What:</strong> Small MATIC payment (≈0.001 MATIC = ~$0.001) to validators</li>
               <li><strong>Why:</strong> Secures your NFT on the blockchain permanently</li>
               <li><strong>When:</strong> Only when minting NFTs (not for image generation)</li>
-              <li><strong>Payment:</strong> Always paid in ETH from your wallet</li>
+              <li><strong>Payment:</strong> Always paid in MATIC from your wallet</li>
             </ul>
 
             <h3 style={{ color: '#9C27B0', marginTop: '20px' }}>🎨 The Process</h3>
