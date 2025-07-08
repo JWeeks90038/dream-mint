@@ -74,33 +74,33 @@ function App() {
       const provider = new ethers.BrowserProvider((window as any).ethereum);
       const network = await provider.getNetwork();
       
-      if (network.chainId === 1n) {
-        // Ethereum Mainnet - Production network
-        setCurrentNetwork('mainnet');
+      if (network.chainId === 137n) {
+        // Polygon Mainnet - Production network
+        setCurrentNetwork('polygon');
         setError(null);
-        console.log('Connected to Ethereum Mainnet - Ready for minting!');
+        console.log('Connected to Polygon Mainnet - Ready for minting!');
       } else {
         // Any other network (including Hardhat local)
         setCurrentNetwork('other');
-        setError(`❌ Unsupported network: ${network.name} (Chain ID: ${network.chainId}). DreamMint requires Ethereum network for minting. Please switch networks.`);
+        setError(`❌ Unsupported network: ${network.name} (Chain ID: ${network.chainId}). DreamMint requires Polygon network for minting. Please switch networks.`);
         
-        // Automatically offer to switch to Ethereum Mainnet
+        // Automatically offer to switch to Polygon Mainnet
         try {
           await (window as any).ethereum.request({
             method: 'wallet_switchEthereumChain',
-            params: [{ chainId: '0x1' }], // 1 in hex (Ethereum Mainnet)
+            params: [{ chainId: '0x89' }], // 137 in hex (Polygon Mainnet)
           });
           // Re-check after switching
           setTimeout(checkNetwork, 1000);
         } catch (switchError: any) {
-          console.log('Failed to auto-switch to Ethereum Mainnet:', switchError);
-          setError(`❌ Please manually switch to the correct Ethereum network in MetaMask. Current network: ${network.name}`);
+          console.log('Failed to auto-switch to Polygon Mainnet:', switchError);
+          setError(`❌ Please manually switch to the Polygon network in MetaMask. Current network: ${network.name}`);
         }
       }
     } catch (err) {
       console.error('Network check failed:', err);
       setCurrentNetwork('unknown');
-      setError('❌ Failed to detect network. Please ensure MetaMask is connected and switch to the correct Ethereum network.');
+      setError('❌ Failed to detect network. Please ensure MetaMask is connected and switch to the Polygon network.');
     }
   }
 
@@ -194,12 +194,12 @@ function App() {
       const network = await provider.getNetwork();
       console.log("🌐 Current network:", network.name, "Chain ID:", network.chainId);
       
-      // ONLY allow Ethereum Mainnet for minting
-      if (network.chainId !== 1n) {
-        throw new Error(`❌ DreamMint requires Ethereum Mainnet. Please switch to Ethereum Mainnet (Chain ID: 1). Current network: ${network.name} (${network.chainId})`);
+      // ONLY allow Polygon Mainnet for minting
+      if (network.chainId !== 137n) {
+        throw new Error(`❌ DreamMint requires Polygon Mainnet. Please switch to Polygon Mainnet (Chain ID: 137). Current network: ${network.name} (${network.chainId})`);
       }
       
-      console.log("✅ Minting on Ethereum Mainnet - Ready for OpenSea!");
+      console.log("✅ Minting on Polygon Mainnet - Ready for OpenSea!");
       
       // Process payment first
       console.log('Processing payment for NFT minting...');
@@ -522,7 +522,7 @@ return (
       {txHash && (
         <p style={{ marginTop: 12 }}>
           Dream minted! Tx:{' '}
-          <a href={`https://etherscan.io/tx/${txHash}`} target="_blank" rel="noopener noreferrer">
+          <a href={`https://polygonscan.com/tx/${txHash}`} target="_blank" rel="noopener noreferrer">
             {txHash}
           </a>
         </p>
@@ -546,15 +546,15 @@ return (
       <div className="modal">
         <div className="modal-content">
           <h2>🎉 Mint Successful!</h2>
-          <p>Your dream NFT has been minted on Ethereum and is OpenSea-ready!</p>
+          <p>Your dream NFT has been minted on Polygon and is OpenSea-ready!</p>
           <div style={{ margin: '16px 0', padding: '12px', backgroundColor: '#e6f3ff', borderRadius: '8px' }}>
             <p><strong>Token ID:</strong> {parseInt(lastMintedTokenId, 16)}</p>
-            <p><strong>Network:</strong> Ethereum</p>
+            <p><strong>Network:</strong> Polygon</p>
             <p><strong>Contract:</strong> 0x1b0b5e6c2787C11747dC0e90BD76028674b7209B</p>
           </div>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', margin: '16px 0' }}>
             <a 
-              href={`https://opensea.io/assets/ethereum/${process.env.VITE_CONTRACT_ADDRESS || '0xYourContractAddress'}/${parseInt(lastMintedTokenId, 16)}`}
+              href={`https://opensea.io/assets/matic/${process.env.VITE_CONTRACT_ADDRESS || '0xYourContractAddress'}/${parseInt(lastMintedTokenId, 16)}`}
               target="_blank" 
               rel="noopener noreferrer"
               style={{ 
@@ -569,7 +569,7 @@ return (
               🌊 View on OpenSea
             </a>
             <a 
-              href={`https://etherscan.io/token/${process.env.VITE_CONTRACT_ADDRESS || '0xYourContractAddress'}?a=${parseInt(lastMintedTokenId, 16)}`}
+              href={`https://polygonscan.com/token/${process.env.VITE_CONTRACT_ADDRESS || '0xYourContractAddress'}?a=${parseInt(lastMintedTokenId, 16)}`}
               target="_blank" 
               rel="noopener noreferrer"
               style={{ 
