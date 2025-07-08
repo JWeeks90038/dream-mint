@@ -631,7 +631,7 @@ return (
             
             <h3 style={{ color: '#4CAF50', marginTop: '20px' }}>🔗 Getting Started</h3>
             <p><strong>1. Connect MetaMask:</strong> Required for all users to receive NFTs. Your wallet address is where your NFT will be delivered.</p>
-            <p><strong>2. Connect to Ethereum:</strong> DreamMint works on Ethereum network for NFT minting.</p>
+            <p><strong>2. Connect to Polygon:</strong> DreamMint works on Polygon network for fast, low-cost NFT minting.</p>
             <p><strong>3. Choose Payment Method:</strong> Select how you want to pay for services in "Payment Settings".</p>
 
             <h3 style={{ color: '#2196F3', marginTop: '20px' }}>💳 Payment Options</h3>
@@ -673,11 +673,20 @@ return (
               <p style={{ marginTop: '15px' }}><strong>Step 2 - Mint NFT ($1.99 + gas):</strong></p>
               <ul>
                 <li>Uploads image & metadata to IPFS (permanent storage)</li>
-                <li>Creates NFT on Ethereum blockchain</li>
-                <li>Pay service fee via chosen method + gas fee in ETH</li>
+                <li>Creates NFT on Polygon blockchain</li>
+                <li>Pay service fee via chosen method + gas fee in MATIC</li>
                 <li>NFT appears in your wallet & on OpenSea</li>
               </ul>
             </div>
+
+            <h3 style={{ color: '#8B5CF6', marginTop: '20px' }}>💜 Why Polygon?</h3>
+            <ul>
+              <li><strong>Lightning Fast:</strong> 2-second transaction confirmations</li>
+              <li><strong>Ultra Low Fees:</strong> ~99% cheaper than Ethereum (~$0.01 vs $10+)</li>
+              <li><strong>Eco-Friendly:</strong> Carbon neutral blockchain</li>
+              <li><strong>OpenSea Compatible:</strong> Full marketplace support</li>
+              <li><strong>Ethereum Security:</strong> Secured by Ethereum mainnet</li>
+            </ul>
 
             <h3 style={{ color: '#2ECC71', marginTop: '20px' }}>🔒 Security & Privacy</h3>
             <ul>
