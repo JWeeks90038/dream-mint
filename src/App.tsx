@@ -685,7 +685,7 @@ return (
               <li><strong>Ultra Low Fees:</strong> ~99% cheaper than Ethereum (~$0.01 vs $10+)</li>
               <li><strong>Eco-Friendly:</strong> Carbon neutral blockchain</li>
               <li><strong>OpenSea Compatible:</strong> Full marketplace support</li>
-              <li><strong>Ethereum Security:</strong> Secured by Ethereum mainnet</li>
+              <li><strong>Proven & Secure:</strong> Trusted by millions of users worldwide</li>
             </ul>
 
             <h3 style={{ color: '#2ECC71', marginTop: '20px' }}>🔒 Security & Privacy</h3>
