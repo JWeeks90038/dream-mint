@@ -23,6 +23,20 @@ dist-ssr
 *.sln
 *.sw?
 
+# Backend secrets and private files
+backend/.env
+backend/private/
+backend/secrets.json
+
+# Database files
+*.sqlite
+*.db
+
+# Cloud configs
+.vercel/
+.aws/
+.firebase/
+
 node_modules
 .env
 
