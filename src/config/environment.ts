@@ -1,4 +1,4 @@
-// Environment configuration for DreamMint DApp
+// Environment configuration for DreamMint DApp - Solana Edition
 
 export interface EnvironmentConfig {
   apiUrl: string;
@@ -7,44 +7,43 @@ export interface EnvironmentConfig {
     publishableKey: string;
     isLiveMode: boolean;
   };
-  network: {
-    chainId: string;
-    name: string;
-    rpcUrl?: string;
-    blockExplorer: string;
-    contractAddress: string;
+  solana: {
+    network: 'mainnet-beta' | 'devnet' | 'testnet';
+    rpcUrl: string;
+    programId: string;
+    explorer: string;
   };
 }
 
-// Development/Test configuration
+// Development/Test configuration (Devnet)
 const developmentConfig: EnvironmentConfig = {
-  apiUrl: 'http://localhost:5001',
+  apiUrl: import.meta.env.VITE_API_URL || 'http://localhost:5001/api',
   isProduction: false,
   stripe: {
     publishableKey: '', // Will be fetched from backend
     isLiveMode: false
   },
-  network: {
-    chainId: '0xaa36a7', // Sepolia testnet
-    name: 'Sepolia Testnet',
-    blockExplorer: 'https://sepolia.etherscan.io',
-    contractAddress: '0x1b0b5e6c2787C11747dC0e90BD76028674b7209B' // Your testnet contract
+  solana: {
+    network: 'devnet',
+    rpcUrl: 'https://api.devnet.solana.com',
+    programId: 'DreamMintDevnetProgramIdHere', // Replace with devnet program ID
+    explorer: 'https://explorer.solana.com?cluster=devnet'
   }
 };
 
-// Production configuration
+// Production configuration (Mainnet)
 const productionConfig: EnvironmentConfig = {
-  apiUrl: 'https://api.yourdomain.com', // Your production API URL
+  apiUrl: import.meta.env.VITE_API_URL || 'https://api.yourdomain.com', // Your production API URL
   isProduction: true,
   stripe: {
     publishableKey: '', // Will be fetched from backend
     isLiveMode: true
   },
-  network: {
-    chainId: '0x1', // Ethereum mainnet
-    name: 'Ethereum Mainnet',
-    blockExplorer: 'https://etherscan.io',
-    contractAddress: '0xYourProductionContractAddress' // Your mainnet contract
+  solana: {
+    network: 'mainnet-beta',
+    rpcUrl: import.meta.env.VITE_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com',
+    programId: process.env.VITE_SOLANA_PROGRAM_ID || 'DreamMintMainnetProgramIdHere', // Replace with mainnet program ID
+    explorer: 'https://explorer.solana.com'
   }
 };
 
@@ -68,6 +67,7 @@ export async function fetchBackendConfig(): Promise<void> {
     
     console.log(`🔧 Environment: ${config.environment}`);
     console.log(`💳 Stripe mode: ${config.stripe.isLiveMode ? 'LIVE' : 'TEST'}`);
+    console.log(`🔗 Solana network: ${environment.solana.network}`);
   } catch (error) {
     console.error('Failed to fetch backend config:', error);
   }

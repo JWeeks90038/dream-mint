@@ -1,3 +1,15 @@
+/* Center the wallet disconnect link under the wallet button */
+.wallet-disconnect-link {
+  display: block;
+  margin: 0.5rem auto 0 auto !important;
+  text-align: center !important;
+  width: auto !important;
+}
+.wallet-disconnect-parent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
 #root {
   max-width: 1280px;
   margin: 0 auto;
@@ -37,6 +49,104 @@ body {
 @media (prefers-reduced-motion: no-preference) {
   a:nth-of-type(2) .logo {
     animation: logo-spin infinite 20s linear;
+  }
+}
+
+/* --- DreamMint Section Containers --- */
+.dreammint-section {
+  background: rgba(30, 41, 59, 0.75); /* slate-800/75 */
+  border-radius: 1.5rem;
+  border: 1.5px solid rgba(255,255,255,0.09);
+  box-shadow: 0 4px 32px 0 rgba(80, 80, 120, 0.13), 0 1.5px 8px 0 rgba(80, 80, 120, 0.09);
+  padding: 2.5rem 2rem;
+  margin-bottom: 2.5rem;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.dreammint-section-header {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 1.2rem;
+  letter-spacing: 0.01em;
+}
+
+.dreammint-section-sub {
+  color: #c7d2fe;
+  font-size: 1.08rem;
+  margin-bottom: 1.5rem;
+}
+
+.dreammint-btn {
+  background: linear-gradient(90deg, #8b5cf6 0%, #3b82f6 100%);
+  color: #fff;
+  border: none;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  font-size: 1.1rem;
+  padding: 0.85em 2.2em;
+  box-shadow: 0 2px 12px 0 rgba(139, 92, 246, 0.10);
+  transition: background 0.2s, transform 0.15s;
+  cursor: pointer;
+}
+.dreammint-btn:hover, .dreammint-btn:focus {
+  background: linear-gradient(90deg, #7c3aed 0%, #2563eb 100%);
+  transform: translateY(-2px) scale(1.03);
+}
+
+.dreammint-card {
+  background: rgba(255,255,255,0.04);
+  border-radius: 1.25rem;
+  border: 1.5px solid rgba(255,255,255,0.10);
+  box-shadow: 0 2px 16px 0 rgba(80, 80, 120, 0.10);
+  padding: 1.5rem 1.2rem;
+  margin-bottom: 1.5rem;
+  transition: box-shadow 0.2s;
+}
+.dreammint-card:hover {
+  box-shadow: 0 6px 24px 0 rgba(139, 92, 246, 0.13);
+}
+
+/* DreamMint Textarea Customization */
+.dreammint-textarea {
+  width: 100%;
+  min-height: 220px;
+  max-height: 440px;
+  padding: 1.0rem 0.2rem;
+  border-radius: 1.5rem;
+  border: 2px solid transparent;
+  background: linear-gradient(135deg, #f8fafc 80%, #e0e7ff 100%);
+  box-shadow: 0 2px 24px 0 rgba(139, 92, 246, 0.08), 0 1.5px 8px 0 rgba(80, 80, 120, 0.08);
+  color: #22223b;
+  font-size: 1.18rem;
+  font-family: inherit;
+  line-height: 1.7;
+  resize: vertical;
+  transition: border 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.dreammint-textarea:focus {
+  border: 2px solid #a78bfa;
+  background: linear-gradient(135deg, #f3e8ff 70%, #e0e7ff 100%);
+  box-shadow: 0 4px 32px 0 rgba(139, 92, 246, 0.13);
+}
+
+.dreammint-textarea:disabled {
+  background: #f1f5f9;
+  color: #a3a3a3;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+  .dreammint-section {
+    padding: 1.5rem 1rem;
+  }
+  .dreammint-card {
+    padding: 1rem 0.7rem;
   }
 }
 

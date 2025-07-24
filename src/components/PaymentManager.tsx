@@ -219,7 +219,7 @@ export function PaymentManager({ account, onPaymentMethodSelected, onClose }: Pa
                     <div>
                       {method.type === 'crypto' ? (
                         <div>
-                          <strong>🔗 Ethereum</strong>
+                          <strong>🔗 Solana</strong>
                           <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>
                             {method.cryptoAddress?.slice(0, 6)}...{method.cryptoAddress?.slice(-4)}
                           </p>
@@ -288,7 +288,7 @@ export function PaymentManager({ account, onPaymentMethodSelected, onClose }: Pa
                 cursor: paymentMethods.some(m => m.type === 'crypto') ? 'not-allowed' : 'pointer'
               }}
             >
-              🔗 Add Ethereum Wallet
+              🔗 Add Solana Wallet
             </button>
             <button
               onClick={() => setShowAddMethod(true)}

@@ -21,7 +21,22 @@ console.log(`💳 Using Stripe ${isProduction ? 'LIVE' : 'TEST'} keys`);
 
 const app = express();
 app.use(express.json());
-app.use(cors());
+
+// Configure CORS for development
+const corsOptions = {
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:3000',
+    'https://dream-mint-dapp.vercel.app',
+    'https://dream-mint-dapp.netlify.app'
+  ],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const openai = new OpenAI({ 
@@ -369,6 +384,12 @@ app.post('/api/create-payment-method', async (req, res) => {
       return res.status(400).json({ error: 'Missing required card information' });
     }
 
+    // Validate Solana address format
+    if (account.length < 32 || account.length > 44) {
+      console.error('❌ Invalid Solana wallet address format');
+      return res.status(400).json({ error: 'Invalid Solana wallet address format' });
+    }
+
     console.log('📤 Creating Stripe Customer and payment method...');
     
     // Step 1: Create or retrieve Stripe Customer
@@ -383,10 +404,11 @@ app.post('/api/create-payment-method', async (req, res) => {
     } else {
       // Create new Stripe Customer
       customer = await stripe.customers.create({
-        email: `${account}@dreammint.app`, // Use wallet address as unique identifier
-        description: `DreamMint user - ${account}`,
+        email: `${account}@dreammint.app`, // Use Solana wallet address as unique identifier
+        description: `DreamMint Solana user - ${account}`,
         metadata: {
-          wallet_address: account,
+          solana_wallet_address: account,
+          blockchain: 'solana',
           created_via: 'dreammint_dapp'
         }
       });
@@ -604,6 +626,54 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
+// Solana address validation endpoint
+app.post('/api/validate-solana-address', async (req, res) => {
+  try {
+    const { address } = req.body;
+    
+    if (!address) {
+      return res.status(400).json({ error: 'Address required' });
+    }
+
+    // Basic Solana address validation
+    const isValidLength = address.length >= 32 && address.length <= 44;
+    const isBase58 = /^[1-9A-HJ-NP-Za-km-z]+$/.test(address);
+    const isValid = isValidLength && isBase58;
+
+    res.json({ 
+      valid: isValid,
+      address: address,
+      blockchain: 'solana'
+    });
+  } catch (error) {
+    console.error('Error validating Solana address:', error);
+    res.status(500).json({ error: 'Failed to validate address' });
+  }
+});
+
+// SOL to USD conversion endpoint
+app.get('/api/sol-price', async (req, res) => {
+  try {
+    const fetch = (await import('node-fetch')).default;
+    const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
+    const data = await response.json();
+    
+    const solPriceUSD = data.solana?.usd || 0;
+    
+    res.json({
+      sol_usd: solPriceUSD,
+      timestamp: new Date().toISOString(),
+      source: 'coingecko'
+    });
+  } catch (error) {
+    console.error('Error fetching SOL price:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch SOL price',
+      sol_usd: 0 // Fallback value
+    });
+  }
+});
+
 // Environment configuration endpoint for frontend
 app.get('/api/config', (req, res) => {
   const publishableKey = isProduction 
@@ -612,6 +682,8 @@ app.get('/api/config', (req, res) => {
     
   res.json({
     environment: isProduction ? 'production' : 'development',
+    blockchain: 'solana',
+    network: isProduction ? 'mainnet-beta' : 'devnet',
     stripe: {
       publishableKey: publishableKey,
       isLiveMode: isProduction
@@ -619,6 +691,11 @@ app.get('/api/config', (req, res) => {
     pricing: {
       imageGeneration: { usd: 0.69 },
       nftMinting: { usd: 1.99 }
+    },
+    solana: {
+      rpcUrl: process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com',
+      programId: process.env.SOLANA_PROGRAM_ID,
+      receiverWallet: process.env.SOLANA_PAYMENT_RECEIVER
     }
   });
 });
@@ -626,6 +703,8 @@ app.get('/api/config', (req, res) => {
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
   console.log(`🚀 AI backend listening on port ${PORT}`);
+  console.log(`🌍 Environment: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}`);
+  console.log(`⛓️  Blockchain: Solana ${isProduction ? 'Mainnet' : 'Devnet'}`);
   console.log(`📡 IPFS proxy available at: http://localhost:${PORT}/api/proxy-ipfs/`);
   console.log(`🎨 Image generation available at: http://localhost:${PORT}/api/generate-image`);
 });

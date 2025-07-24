@@ -1,0 +1,628 @@
+import { useState, useEffect } from 'react';
+import { 
+  ConnectionProvider, 
+  WalletProvider, 
+  useWallet 
+} from '@solana/wallet-adapter-react';
+import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
+import { 
+  PhantomWalletAdapter,
+  SolflareWalletAdapter
+} from '@solana/wallet-adapter-wallets';
+import {
+  WalletModalProvider,
+  WalletMultiButton,
+  WalletDisconnectButton
+} from '@solana/wallet-adapter-react-ui';
+
+import { solanaDreamMint, formatPublicKey } from './blockchain/solana';
+import { uploadDreamToIPFS } from './blockchain/ipfs-pinata';
+import { PaymentManager } from './components/PaymentManager';
+import { MetaMaskWalletButton } from './components/MetaMaskWalletButton';
+import { paymentService, type PaymentMethod, PRICING } from './services/PaymentService';
+import { environment, fetchBackendConfig } from './config/environment';
+import { solanaConfig } from './config/solana';
+import DreamJournal from './components/DreamJournal';
+import DreamVisualizer from './components/DreamVisualizer';
+import DreamRemixer from './components/DreamRemixer';
+import { DreamGallery } from './components/SolanaDreamGallery';
+
+import './App.css';
+import './dream-surreal.css';
+import dreamMoon from './assets/dream-moon.png';
+
+// Solana wallet configuration
+const network = environment.solana.network as WalletAdapterNetwork;
+const endpoint = environment.solana.rpcUrl;
+
+const wallets = [
+  new PhantomWalletAdapter(),
+  new SolflareWalletAdapter({ network }),
+];
+
+// Main App component wrapped with Solana providers
+function App() {
+  return (
+    <ConnectionProvider endpoint={endpoint}>
+      <WalletProvider wallets={wallets} autoConnect>
+        <WalletModalProvider>
+          <DreamMintApp />
+        </WalletModalProvider>
+      </WalletProvider>
+    </ConnectionProvider>
+  );
+}
+
+// Core DreamMint application component
+function DreamMintApp() {
+  const { publicKey, connected, wallet } = useWallet();
+  
+  // Core states
+  const [dream, setDream] = useState('');
+  const [generating, setGenerating] = useState(false);
+  const [minting, setMinting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [aiImageUrl, setAiImageUrl] = useState<string | null>(null);
+  const [userNFTs, setUserNFTs] = useState<any[]>([]);
+  
+  // Solana-specific states
+  const [balance, setBalance] = useState(0);
+  const [txHash, setTxHash] = useState<string | null>(null);
+  
+  // Payment states
+  const [showPaymentManager, setShowPaymentManager] = useState(false);
+  const [defaultPaymentMethod, setDefaultPaymentMethod] = useState<PaymentMethod | null>(null);
+  const [paymentAction, setPaymentAction] = useState<'image' | 'mint' | null>(null);
+  
+  // FAQ modal state
+  const [showFAQ, setShowFAQ] = useState(false);
+
+  useEffect(() => {
+    async function loadData() {
+      if (publicKey && connected) {
+        // Load user NFTs
+        setUserNFTs(await solanaDreamMint.fetchUserNFTs(publicKey));
+        
+        // Load balance
+        const balanceSOL = await solanaDreamMint.getBalance(publicKey);
+        setBalance(balanceSOL);
+        
+        // Load default payment method
+        const defaultMethod = await paymentService.getDefaultPaymentMethod(publicKey.toString());
+        setDefaultPaymentMethod(defaultMethod);
+        
+        // Update SOL pricing
+        await paymentService.updateSolPricing();
+      }
+    }
+    loadData();
+  }, [publicKey, connected, txHash]);
+
+  useEffect(() => {
+    // Load backend configuration
+    fetchBackendConfig();
+  }, []);
+
+  // Combined function to generate image and mint NFT
+  async function mintDreamComplete() {
+    if (!dream.trim()) {
+      setError('Please enter your dream first.');
+      return;
+    }
+
+    if (!connected || !publicKey) {
+      setError('Please connect your Solana wallet first.');
+      return;
+    }
+
+    // Check if user has a default payment method
+    if (!defaultPaymentMethod) {
+      setPaymentAction('complete');
+      setShowPaymentManager(true);
+      return;
+    }
+
+    setGenerating(true);
+    setError(null);
+    
+    try {
+      // Step 1: Generate AI image if not already generated
+      if (!aiImageUrl) {
+        console.log("Generating AI image...");
+        
+        // Check SOL balance for total cost
+        if (defaultPaymentMethod.type === 'crypto') {
+          const balanceCheck = await paymentService.checkSufficientBalance(
+            publicKey, 
+            PRICING.total.sol
+          );
+          
+          if (!balanceCheck.sufficient) {
+            setError(`Insufficient SOL balance. Required: ${balanceCheck.required.toFixed(4)} SOL, Available: ${balanceCheck.balance.toFixed(4)} SOL`);
+            return;
+          }
+        }
+
+        const paymentResult = await paymentService.processImageGenerationPayment(
+          publicKey.toString(),
+          defaultPaymentMethod,
+          dream
+        );
+
+        if (!paymentResult.success) {
+          throw new Error(paymentResult.error || 'Payment failed');
+        }
+
+        // Generate the image
+        const response = await fetch(`${environment.apiUrl}/api/generate-image`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: dream })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to generate image');
+        }
+
+        const data = await response.json();
+        setAiImageUrl(data.imageUrl);
+        console.log("✅ AI image generated successfully");
+      }
+
+      // Step 2: Mint the NFT
+      setMinting(true);
+      console.log("Starting NFT minting process...");
+      
+      // Process minting payment if not already paid
+      const mintPaymentResult = await paymentService.processNFTMintingPayment(
+        publicKey.toString(),
+        defaultPaymentMethod,
+        dream,
+        aiImageUrl || "pending"
+      );
+
+      if (!mintPaymentResult.success) {
+        throw new Error(mintPaymentResult.error || 'Minting payment failed');
+      }
+
+      // Upload metadata to IPFS
+      console.log('Uploading dream metadata to IPFS...');
+      const metadataUri = await uploadDreamToIPFS({
+        dreamText: dream,
+        imageFile: undefined,
+        mood: undefined,
+        category: undefined,
+        keywords: undefined
+      });
+
+      // Mint NFT on Solana
+      console.log('Minting NFT on Solana...');
+      const mintResult = await solanaDreamMint.mintDreamNFT({
+        wallet: {
+          publicKey,
+          connected,
+          connect: wallet!.adapter.connect.bind(wallet!.adapter),
+          disconnect: wallet!.adapter.disconnect.bind(wallet!.adapter),
+          signTransaction: wallet!.adapter.signTransaction?.bind(wallet!.adapter),
+          signAllTransactions: wallet!.adapter.signAllTransactions?.bind(wallet!.adapter)
+        },
+        dreamText: dream,
+        metadataUri: metadataUri,
+        receiverPublicKey: environment.paymentReceiver
+      });
+
+      console.log('✅ Dream NFT minted successfully!');
+      
+      // Success message
+      setError(null);
+      alert(`🎉 Dream NFT minted successfully! 
+      
+Mint Address: ${mintResult.mintAddress}
+Transaction: ${mintResult.signature}
+
+Your NFT will appear in your wallet and on all major Solana marketplaces.`);
+
+      // Reset form
+      setDream('');
+      setAiImageUrl(null);
+      
+    } catch (error) {
+      console.error('Dream minting failed:', error);
+      setError(error instanceof Error ? error.message : 'Dream minting failed');
+    } finally {
+      setGenerating(false);
+      setMinting(false);
+    }
+  }
+
+  return (
+      setError('Please enter your dream first.');
+      return;
+    }
+
+    if (!connected || !publicKey) {
+      setError('Please connect your Solana wallet first.');
+      return;
+    }
+
+    // Check if user has a default payment method
+    if (!defaultPaymentMethod) {
+      setPaymentAction('image');
+      setShowPaymentManager(true);
+      return;
+    }
+
+    // Check SOL balance for crypto payments
+    if (defaultPaymentMethod.type === 'crypto') {
+      const balanceCheck = await paymentService.checkSufficientBalance(
+        publicKey, 
+        PRICING.imageGeneration.sol
+      );
+      
+      if (!balanceCheck.sufficient) {
+        setError(`Insufficient SOL balance. Required: ${balanceCheck.required.toFixed(4)} SOL, Available: ${balanceCheck.balance.toFixed(4)} SOL`);
+        return;
+      }
+    }
+
+    setGenerating(true);
+    setError(null);
+    
+    try {
+      console.log("Processing payment for AI image generation...");
+      
+      const paymentResult = await paymentService.processImageGenerationPayment(
+        publicKey.toString(),
+        defaultPaymentMethod,
+        dream
+      );
+
+      if (!paymentResult.success) {
+        throw new Error(paymentResult.error || 'Payment failed');
+      }
+
+      console.log('Payment successful, generating AI image...');
+
+      const response = await fetch(`${environment.apiUrl}/api/generate-image`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: dream })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'AI image generation failed');
+      }
+
+      const data = await response.json();
+      setAiImageUrl(data.imageUrl);
+      console.log('✅ AI image generated successfully!');
+      
+    } catch (error) {
+      console.error('Image generation error:', error);
+      setError(error instanceof Error ? error.message : 'Failed to generate image');
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  async function mintDream() {
+    if (!connected || !publicKey) {
+      setError('Please connect your Solana wallet first.');
+      return;
+    }
+
+    if (!aiImageUrl) {
+      setError('Please generate an image first.');
+      return;
+    }
+
+    // Check if user has a default payment method
+    if (!defaultPaymentMethod) {
+      setPaymentAction('mint');
+      setShowPaymentManager(true);
+      return;
+    }
+
+    setMinting(true);
+    setError(null);
+    setTxHash(null);
+    
+    try {
+      console.log("Starting Solana NFT mint process...");
+      
+      console.log("✅ Connected to Solana", solanaConfig.network);
+      
+      // Check SOL balance for crypto payments
+      if (defaultPaymentMethod.type === 'crypto') {
+        const balanceCheck = await paymentService.checkSufficientBalance(
+          publicKey, 
+          PRICING.nftMinting.sol
+        );
+        
+        if (!balanceCheck.sufficient) {
+          throw new Error(`Insufficient SOL balance. Required: ${balanceCheck.required.toFixed(4)} SOL, Available: ${balanceCheck.balance.toFixed(4)} SOL`);
+        }
+      }
+
+      // Process payment first
+      console.log('Processing payment for NFT minting...');
+      const paymentResult = await paymentService.processNFTMintingPayment(
+        publicKey.toString(),
+        defaultPaymentMethod,
+        dream,
+        aiImageUrl
+      );
+
+      if (!paymentResult.success) {
+        throw new Error(paymentResult.error || 'Payment failed');
+      }
+
+      console.log('Payment successful, proceeding with minting...');
+      
+      // Upload metadata to IPFS
+      console.log('Uploading dream metadata to IPFS...');
+      const metadataUri = await uploadDreamToIPFS({
+        dreamText: dream,
+        imageFile: undefined, // We'll use the AI generated image URL directly
+        mood: undefined,
+        category: undefined,
+        keywords: undefined
+      });
+
+      console.log('Metadata uploaded to IPFS:', metadataUri);
+
+      // Mint NFT on Solana
+      console.log('Minting NFT on Solana...');
+      const mintResult = await solanaDreamMint.mintDreamNFT({
+        wallet: {
+          publicKey,
+          connected,
+          connect: wallet!.adapter.connect.bind(wallet!.adapter),
+          disconnect: wallet!.adapter.disconnect.bind(wallet!.adapter),
+        },
+        metadataUri,
+        name: 'DreamMint NFT',
+        symbol: 'DREAM'
+      });
+
+      setTxHash(mintResult.signature);
+
+      console.log('✅ Dream NFT minted successfully!');
+      console.log('🔗 Transaction:', mintResult.signature);
+      console.log('🎯 Mint Address:', mintResult.mintAddress);
+      
+      // Success message
+      setError(null);
+      alert(`🎉 Dream NFT minted successfully! 
+      
+Mint Address: ${mintResult.mintAddress}
+Transaction: ${mintResult.signature}
+
+Your NFT will appear in your wallet and can be viewed on Solana explorers.`);
+      
+    } catch (error) {
+      console.error('Minting failed:', error);
+      setError(error instanceof Error ? error.message : 'Minting failed');
+    } finally {
+      setMinting(false);
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <header className="text-center mb-8">
+          <h1 className="text-5xl font-bold text-white mb-2">DreamMint</h1>
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <img src={dreamMoon} alt="Dream Moon" className="w-8 h-8 rounded-full opacity-80" />
+            <p className="text-xl text-gray-300">Turn your dreams into NFTs on Solana</p>
+            <img src={dreamMoon} alt="Dream Moon" className="w-8 h-8 rounded-full opacity-80" />
+          </div>
+          
+          {/* Wallet Connection */}
+          <div className="flex justify-center gap-4 mb-4">
+            {/* MetaMask Option (Preferred) */}
+            <MetaMaskWalletButton 
+              onConnect={(address) => {
+                console.log('MetaMask connected:', address);
+                // Handle MetaMask connection
+              }}
+              onDisconnect={() => {
+                console.log('MetaMask disconnected');
+                // Handle MetaMask disconnection
+              }}
+            />
+            
+            {/* Alternative Solana Wallets */}
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <span style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.9rem' }}>or</span>
+              <WalletMultiButton className="!bg-purple-600 hover:!bg-purple-700" />
+              {connected && <WalletDisconnectButton className="!bg-red-600 hover:!bg-red-700" />}
+            </div>
+          </div>
+
+          {/* Wallet Info */}
+          {connected && publicKey && (
+            <div className="text-center text-gray-300 mb-4">
+              <p>Connected: {formatPublicKey(publicKey)}</p>
+              <p>Balance: {balance.toFixed(4)} SOL</p>
+              <p>Network: {solanaConfig.network}</p>
+            </div>
+          )}
+
+          {/* Network Status */}
+          <div className="text-center mb-4">
+            <span className="inline-block px-3 py-1 bg-green-600 text-white rounded-full text-sm">
+              ✅ Solana {solanaConfig.network === 'mainnet-beta' ? 'Mainnet' : 'Devnet'}
+            </span>
+          </div>
+        </header>
+
+        {/* Error Display */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-600 text-white rounded-lg text-center">
+            {error}
+          </div>
+        )}
+
+        {/* Success Display */}
+        {txHash && (
+          <div className="mb-6 p-4 bg-green-600 text-white rounded-lg text-center">
+            <p>✅ Transaction confirmed!</p>
+            <p>
+              <a 
+                href={`${environment.solana.explorer}/tx/${txHash}`}
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="underline hover:text-green-200"
+              >
+                View on Solana Explorer →
+              </a>
+            </p>
+          </div>
+        )}
+
+        {/* Main Content */}
+        <div className="max-w-2xl mx-auto">
+          {/* Single Dream Input and Mint */}
+          <div className="bg-white/10 backdrop-blur-md p-8 rounded-lg mb-6">
+            <h2 className="text-2xl font-bold text-white mb-6 text-center">✨ Describe Your Dream</h2>
+            <textarea
+              value={dream}
+              onChange={(e) => setDream(e.target.value)}
+              placeholder="I dreamed I was flying through a nebula of crystalline butterflies, each wing refracting starlight into rainbow prisms..."
+              className="w-full h-40 p-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-gray-800 mb-6"
+              disabled={generating || minting}
+            />
+            
+            {/* AI Generated Image Preview */}
+            {aiImageUrl && (
+              <div className="text-center mb-6">
+                <img 
+                  src={aiImageUrl} 
+                  alt="Generated dream" 
+                  className="max-w-full h-auto rounded-lg mx-auto shadow-lg"
+                  style={{ maxHeight: '300px' }}
+                />
+              </div>
+            )}
+            
+            <div className="text-center">
+              <div className="text-gray-300 text-sm mb-4">
+                Total Cost: ${PRICING.total.usd} ({PRICING.total.sol.toFixed(4)} SOL)
+              </div>
+              <button
+                onClick={mintDreamComplete}
+                disabled={(generating || minting) || !dream.trim() || !connected}
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:bg-gray-600 text-white px-8 py-3 rounded-lg font-bold text-lg transition-all transform hover:scale-105 shadow-lg"
+              >
+                {generating ? '🎨 Creating Dream...' : 
+                 minting ? '⚡ Minting NFT...' : 
+                 '✨ Mint Dream'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* User's NFT Gallery */}
+        {connected && publicKey && userNFTs.length > 0 && (
+          <div className="mt-8">
+            <DreamGallery nfts={userNFTs} />
+          </div>
+        )}
+
+        {/* FAQ Button */}
+        <div className="text-center mt-8">
+          <button
+            onClick={() => setShowFAQ(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+          >
+            ❓ How It Works & FAQ
+          </button>
+        </div>
+
+        {/* FAQ Modal */}
+        {showFAQ && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg max-w-2xl max-h-[80vh] overflow-y-auto p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold">How DreamMint Works</h2>
+                <button
+                  onClick={() => setShowFAQ(false)}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+              
+              <div className="space-y-4 text-gray-700">
+                <h3 className="text-xl font-semibold text-purple-600">🚀 Quick Start</h3>
+                <ol className="list-decimal list-inside space-y-2">
+                  <li>Connect your Solana wallet (Phantom recommended)</li>
+                  <li>Describe your dream in vivid detail</li>
+                  <li>Pay service fee (card or SOL) to generate AI image</li>
+                  <li>Review your dream visualization</li>
+                  <li>Pay minting fee + gas to mint as NFT</li>
+                  <li>NFT appears in your wallet & on Solana explorers</li>
+                </ol>
+
+                <h3 className="text-xl font-semibold text-purple-600">🔮 Why Solana?</h3>
+                <ul className="list-disc list-inside space-y-1">
+                  <li><strong>Lightning Fast:</strong> Sub-second transaction confirmations</li>
+                  <li><strong>Ultra Low Fees:</strong> ~99% cheaper than Ethereum (~$0.001 vs $50+)</li>
+                  <li><strong>Eco-Friendly:</strong> Proof-of-Stake, carbon neutral</li>
+                  <li><strong>Marketplace Ready:</strong> Magic Eden, OpenSea (Solana), and more</li>
+                  <li><strong>Mobile First:</strong> Phantom mobile wallet for easy access</li>
+                </ul>
+
+                <h3 className="text-xl font-semibold text-green-600">💰 Pricing</h3>
+                <ul className="list-disc list-inside space-y-1">
+                  <li><strong>AI Image Generation:</strong> $0.99 ({PRICING.imageGeneration.sol.toFixed(4)} SOL)</li>
+                  <li><strong>NFT Minting:</strong> $2.99 ({PRICING.nftMinting.sol.toFixed(4)} SOL)</li>
+                  <li><strong>Transaction Fees:</strong> ~$0.001 (paid in SOL)</li>
+                  <li><strong>Total Cost:</strong> ~$3.98 (vs $50+ on Ethereum)</li>
+                </ul>
+
+                <h3 className="text-xl font-semibold text-blue-600">🔒 Security & Privacy</h3>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>Your wallet, your NFTs - true Web3 ownership</li>
+                  <li>Dreams stored on IPFS - decentralized and permanent</li>
+                  <li>Open source smart contracts - fully auditable</li>
+                  <li>No personal data collection beyond transaction records</li>
+                </ul>
+
+                <h3 className="text-xl font-semibold text-orange-600">🎯 Getting SOL</h3>
+                <ul className="list-disc list-inside space-y-1">
+                  <li><strong>Phantom Wallet:</strong> Buy SOL directly in-app</li>
+                  <li><strong>Exchanges:</strong> Coinbase, Binance, FTX, etc.</li>
+                  <li><strong>Amount Needed:</strong> ~0.02 SOL (~$4) for full experience</li>
+                  <li><strong>Devnet Testing:</strong> Free SOL faucet for testing</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Payment Manager Modal */}
+        {showPaymentManager && (
+          <PaymentManager
+            account={publicKey?.toString() || ''}
+            onClose={() => setShowPaymentManager(false)}
+            onPaymentMethodSelected={async (method) => {
+              setDefaultPaymentMethod(method);
+              setShowPaymentManager(false);
+              
+              // Automatically trigger the mint dream action
+              await mintDreamComplete();
+              setPaymentAction(null);
+            }}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default App;
