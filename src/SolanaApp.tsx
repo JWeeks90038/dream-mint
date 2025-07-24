@@ -1,14 +1,5 @@
-// Utility to check if Solana Snap is installed (checks for @solflare-wallet/solana-snap)
+// Utility: Solflare Solana Snap ID
 const SOLFLARE_SOLANA_SNAP_ID = 'npm:@solflare-wallet/solana-snap';
-async function isSolanaSnapInstalled(): Promise<boolean> {
-  if (!(window as any).ethereum) return false;
-  try {
-    const snaps = await (window as any).ethereum.request({ method: 'wallet_getSnaps' });
-    return Object.keys(snaps).includes(SOLFLARE_SOLANA_SNAP_ID);
-  } catch (e) {
-    return false;
-  }
-}
 import { useState, useEffect } from 'react';
 import { useConnection } from '@solana/wallet-adapter-react';
 import { 
