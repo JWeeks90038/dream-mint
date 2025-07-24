@@ -32,7 +32,7 @@ import { solanaDreamMint, formatPublicKey } from './blockchain/solana';
 import { uploadDreamToIPFS } from './blockchain/ipfs-pinata';
 import { PaymentManager } from './components/PaymentManager';
 // Placeholder for MetaMask Snap connect
-import { paymentService, type PaymentMethod, PRICING } from './services/PaymentService';
+import { paymentService, type PaymentMethod } from './services/PaymentService';
 import { environment, fetchBackendConfig } from './config/environment';
 import { solanaConfig } from './config/solana';
 import { DreamGallery } from './components/SolanaDreamGallery';
@@ -61,12 +61,9 @@ function DreamMintApp() {
     setError(null);
   }
   const { connection } = useConnection();
-  // State for Snap check
-  const [snapInstalled, setSnapInstalled] = useState<boolean | null>(null);
+  // ...existing code...
 
-  useEffect(() => {
-    isSolanaSnapInstalled().then(setSnapInstalled);
-  }, []);
+  // ...existing code...
   const { connected, publicKey, wallet } = useWallet();
   
   // State management
@@ -367,10 +364,8 @@ Your NFT will appear in your wallet and can be viewed on Solana explorers.`);
                           },
                         });
                         alert('Solana Snap (Solflare) enabled!');
-                        setSnapInstalled(true);
                       } catch (err) {
                         alert('Failed to enable Solana Snap: ' + (err && (err as any).message ? (err as any).message : err));
-                        setSnapInstalled(false);
                       }
                     }}
                   >
